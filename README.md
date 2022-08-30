@@ -3,7 +3,7 @@
 # New Relic Infrastructure Public Keys
 
 This project consists on building a debian package, `newrelic-infra-public-keys`, which contains the public key for both the
-key that is currently be used for signing (“current key”), and the key that will be used after the rotation takes place
+key that is currently being used for signing (“current key”), and the key that will be used after the rotation takes place
 (“future key”). The future key is generated in advance, but not used to sign packages until a reasonable time
 (“update window”) passes.
 
@@ -23,7 +23,7 @@ and 0xCCCC the future key.
 
 ## Installation
 
-This package will be installed withing the newrelic-infra as a dependency
+This package will be installed within the newrelic-infra as a dependency
 
 ## Build
 

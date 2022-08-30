@@ -30,7 +30,7 @@ jobs:
       - name: Preparing linux packages
         run: make build
 
-      - name: (TBD) Sign package
+      - name: Sign package
         run: make ci/sign
         env:
           GPG_MAIL: 'infrastructure-eng@newrelic.com'
