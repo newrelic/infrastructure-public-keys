@@ -1,0 +1,80 @@
+name: Pre-Release
+
+on:
+  release:
+    types:
+      - prereleased
+    tags:
+      - '*'
+
+env:
+  TAG: ${{ github.event.release.tag_name }}
+  PGK_VERSION: ${{ github.event.release.tag_name }}
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  SCHEMA_BRANCH: "ci/init"
+
+jobs:
+  packaging:
+    name: Build newrelic infra public keys package
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.OHAI_DOCKER_HUB_ID }}
+          password: ${{ secrets.OHAI_DOCKER_HUB_PASSWORD }}
+
+      - name: Preparing linux packages
+        run: make build
+
+      - name: Sign package
+        run: make ci/sign
+        env:
+          GPG_MAIL: 'infrastructure-eng@newrelic.com'
+          GPG_PASSPHRASE: ${{ secrets.OHAI_GPG_PASSPHRASE }}
+          GPG_PRIVATE_KEY_BASE64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }} # base64 encoded
+
+      - name: Generate checksum files
+        uses: newrelic/infrastructure-agent/.github/actions/generate-checksums@master
+        with:
+          files_regex: '.*\(deb\)'
+          files_path: 'pkg'
+          run_sudo: true
+
+      - name: Upload artifacts to release assets
+        run: bash upload_artifacts_gh.sh
+
+  publish:
+    name: Publish linux artifacts into s3 staging bucket
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.OHAI_DOCKER_HUB_ID }}
+          password: ${{ secrets.OHAI_DOCKER_HUB_PASSWORD }}
+      - name: Publish ${{ matrix.assetsType }} to S3 action
+        uses: newrelic/infrastructure-publish-action@v1
+        with:
+          tag: ${{ github.event.release.tag_name }}
+          app_name: "newrelic-infra-public-keys"
+          repo_name: "newrelic/infrastructure-public-keys"
+          schema: "custom"
+          schema_url: "https://raw.githubusercontent.com/newrelic/infrastructure-public-keys/${{ env.SCHEMA_BRANCH }}/upload-schema-linux-deb.yml"
+          aws_access_key_id: ${{ secrets.OHAI_AWS_ACCESS_KEY_ID_STAGING }}
+          aws_secret_access_key: ${{ secrets.OHAI_AWS_SECRET_ACCESS_KEY_STAGING }}
+          aws_s3_bucket_name: "nr-downloads-ohai-staging"
+          aws_s3_lock_bucket_name: "onhost-ci-lock-staging"
+          access_point_host: "staging"
+          run_id: ${{ github.run_id }}
+          aws_region: "us-east-1"
+          aws_role_session_name: ${{ secrets.OHAI_AWS_ROLE_SESSION_NAME_STAGING }}
+          aws_role_arn: ${{ secrets.OHAI_AWS_ROLE_ARN_STAGING }}
+          disable_lock: false
+          # used for signing package stuff
+          gpg_passphrase: ${{ secrets.OHAI_GPG_PASSPHRASE }}
+          gpg_private_key_base64: ${{ secrets.OHAI_GPG_PRIVATE_KEY_BASE64 }}
