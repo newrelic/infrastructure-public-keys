@@ -29,8 +29,8 @@ ci/deps:
 .PHONY: ci/validate
 ci/validate: generate-keyring
 	@git diff --name-only --exit-code gpg/keyrings/newrelic-infra-keyring.gpg \
-		|| echo "Keyring not up-to-date with the current keys, please run \
-./scripts/generate_keyring.sh and commit the generated keyring."
+		|| (echo "Keyring not up-to-date with the current keys, please run \
+./scripts/generate_keyring.sh and commit the generated keyring."; exit 1)
 
 .PHONY : ci/sign
 ci/sign: ci/deps

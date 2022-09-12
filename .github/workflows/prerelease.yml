@@ -27,6 +27,9 @@ jobs:
           username: ${{ secrets.OHAI_DOCKER_HUB_ID }}
           password: ${{ secrets.OHAI_DOCKER_HUB_PASSWORD }}
 
+      - name: Validate keyring is aligned with public keys
+        run: make ci/validate
+
       - name: Preparing linux packages
         run: make build
 
