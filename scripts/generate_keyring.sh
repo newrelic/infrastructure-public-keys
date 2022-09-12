@@ -10,7 +10,7 @@ if [ -z "$1" ]; then
 fi
 
 # default values
-KEYRING="output/keyrings/newrelic-infra-keyring.gpg"
+KEYRING="gpg/keyrings/newrelic-infra-keyring.gpg"
 
 # avoid gnupg touching ~/.gnupg
 GNUPGHOME=$(mktemp -d -t nrring.XXXXXXXX)

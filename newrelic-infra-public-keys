@@ -10,8 +10,7 @@ if [ ! -f ${USR_SHARE_KEYRING} ]; then
 fi
 chmod a+r ${USR_SHARE_KEYRING}
 
-cat "${KEYS_LOCATION}/keys/current/newrelic_apt_key_current.gpg" | gpg -q --no-default-keyring --keyring ${USR_SHARE_KEYRING} --import --batch
-cat "${KEYS_LOCATION}/keys/next/newrelic_apt_key_next.gpg" | gpg -q --no-default-keyring --keyring ${USR_SHARE_KEYRING} --import --batch
+cat "${KEYS_LOCATION}/keyrings/${KEYRING_FILE_NAME}" | gpg -q --no-default-keyring --keyring ${USR_SHARE_KEYRING} --import --batch
 
 # backward compatibility hack
 if  ! grep "signed-by=${USR_SHARE_KEYRING}" /etc/apt/sources.list.d/newrelic-infra.list 2>/dev/null 1>/dev/null; then
