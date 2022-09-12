@@ -1,0 +1,15 @@
+name: Test format
+
+on:
+  push:
+
+jobs:
+  validate:
+    name: Validate format
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Validate keyring from actual keys
+        run: make ci/validate
