@@ -3,8 +3,10 @@ IMAGE_NAME = newrelic-infra-public-keys
 PKG_VERSION ?= 0.0.0
 BUILDER_IMG_TAG = infrastructure-public-keys-builder
 
-gpg/keyrings/newrelic-infra-keyring.gpg: gpg/keys/current/newrelic* gpg/keys/next/newrelic*
-	./scripts/generate_keyring.sh gpg/keys/current/newrelic* gpg/keys/next/newrelic*
+keys := $(wildcard gpg/keys/current/newrelic* gpg/keys/next/newrelic*)
+
+gpg/keyrings/newrelic-infra-keyring.gpg: ./scripts/generate_keyring.sh $(keys)
+	./scripts/generate_keyring.sh $(keys)
 
 .PHONY: clean
 clean:

@@ -32,7 +32,7 @@ do
 		keyid=$(gpg --with-colons --keyid long --options /dev/null --no-auto-check-trustdb < $keyfile | grep '^pub' | cut -d : -f 5)
 		if [[ ! " ${keyids[*]} " =~ " ${keyid} " ]]; then
 			keyids+=($keyid)	
-			continue
+			gpg --quiet --import $keyfile
 		else
 			echo "Skipping $keyfile as already exists in keyring"
 			continue
@@ -42,12 +42,15 @@ do
 	fi
 done
 
-for keyid in "$keyids"
+# empty keyring file
+true > $KEYRING
+
+# append keys to keyring
+for keyid in "${keyids[@]}"
 do
-	gpg --quiet --import $keyfile
 	gpg --no-auto-check-trustdb --options /dev/null \
 		--export-options export-clean,no-export-attributes \
-		--export $keyid > $KEYRING
+		--export $keyid >> $KEYRING
 	echo "Key with ID $keyid added into the keyring"
 done
 
