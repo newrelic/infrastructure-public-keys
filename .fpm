@@ -5,6 +5,7 @@
 --version 0.0.0
 --architecture all
 --depends bash
+--deb-pre-depends gpg
 --description "Adds New Relic current and next apt public keys to the system"
 --url "https://github.com/newrelic/infrastructure-agent/tree/master/tools/newrelic-infra-public-keys"
 --maintainer "caos-team@newrelic.com"
