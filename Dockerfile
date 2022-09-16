@@ -8,6 +8,7 @@ RUN mkdir -p /fpm/opt/newrelic-infra-public-keys/keyrings
 COPY .fpm /fpm
 COPY gpg/keyrings /fpm/opt/newrelic-infra-public-keys/keyrings
 COPY newrelic-infra-public-keys /fpm/newrelic-infra-public-keys
+COPY remove-keyring /fpm/remove-keyring
 
 WORKDIR /fpm
 

@@ -10,3 +10,4 @@
 --url "https://github.com/newrelic/infrastructure-agent/tree/master/tools/newrelic-infra-public-keys"
 --maintainer "caos-team@newrelic.com"
 --after-install newrelic-infra-public-keys
+--before-remove remove-keyring
