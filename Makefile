@@ -3,9 +3,17 @@ IMAGE_NAME = newrelic-infra-public-keys
 PKG_VERSION ?= 0.0.0
 BUILDER_IMG_TAG = infrastructure-public-keys-builder
 
+keys := $(wildcard gpg/keys/current/newrelic* gpg/keys/next/newrelic*)
+
+gpg/keyrings/newrelic-infra-keyring.gpg: ./scripts/generate_keyring.sh $(keys)
+	./scripts/generate_keyring.sh $(keys)
+
 .PHONY: clean
 clean:
 	@rm -f pkg/*.deb
+
+.PHONY: generate-keyring
+generate-keyring: gpg/keyrings/newrelic-infra-keyring.gpg
 
 .PHONY: build-container
 build-container:
@@ -13,12 +21,18 @@ build-container:
 
 
 .PHONY: build
-build: clean build-container
+build: clean generate-keyring build-container
 	@docker run -v $(CURDIR)/pkg:/fpm/pkg $(IMAGE_NAME):$(IMAGE_VERSION) --version $(PKG_VERSION) .
 
 .PHONY: ci/deps
 ci/deps:
 	@docker build -t $(BUILDER_IMG_TAG) -f $(CURDIR)/build/Dockerfile $(CURDIR)
+
+.PHONY: ci/validate
+ci/validate: generate-keyring
+	@git diff --name-only --exit-code gpg/keyrings/newrelic-infra-keyring.gpg \
+		|| (echo "Keyring not up-to-date with the current keys, please run \
+./scripts/generate_keyring.sh and commit the generated keyring."; exit 1)
 
 .PHONY : ci/sign
 ci/sign: ci/deps

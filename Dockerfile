@@ -4,9 +4,9 @@ RUN apk add --update ruby-dev gcc make musl-dev libffi-dev xz-dev tar && \
     gem install fpm
 
 
-RUN mkdir -p /fpm/opt/newrelic-infra-public-keys/keys
+RUN mkdir -p /fpm/opt/newrelic-infra-public-keys/keyrings
 COPY .fpm /fpm
-COPY keys /fpm/opt/newrelic-infra-public-keys/keys
+COPY gpg/keyrings /fpm/opt/newrelic-infra-public-keys/keyrings
 COPY newrelic-infra-public-keys /fpm/newrelic-infra-public-keys
 
 WORKDIR /fpm
