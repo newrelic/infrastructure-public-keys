@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+KEYRING_FILE_NAME=newrelic-infra-keyring.gpg
+TRUSTED_GPG_D_KEYRING=/etc/apt/trusted.gpg.d/${KEYRING_FILE_NAME}
+USR_SHARE_KEYRING=/usr/share/keyrings/${KEYRING_FILE_NAME}
+
+rm -f "${USR_SHARE_KEYRING}" "${USR_SHARE_KEYRING}~" "${TRUSTED_GPG_D_KEYRING}"
+
+exit 0
