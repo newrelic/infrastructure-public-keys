@@ -5,7 +5,6 @@
 #
 #
 
-
 print_usage() {
   printf -- "Usage: %s\n" $(basename "${0}")
   printf -- "-p: Path to look for the files\n"
@@ -13,7 +12,7 @@ print_usage() {
 }
 
 SEARCH_PATH='pkg'
-FIND_REGEX='\.\/.+\.\(deb\|sum\|asc\)'
+FIND_REGEX='\.\/.+\.\(deb\|rpm\|sum\|asc\)'
 
 while getopts 'p:r:' flag
 do

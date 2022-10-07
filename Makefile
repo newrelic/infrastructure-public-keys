@@ -11,17 +11,25 @@ gpg/keyrings/newrelic-infra-keyring.gpg: ./scripts/generate_keyring.sh $(keys)
 .PHONY: clean
 clean:
 	@rm -f pkg/*.deb
+	@rm -f pkg/*.rpm
 
 .PHONY: generate-keyring
 generate-keyring: gpg/keyrings/newrelic-infra-keyring.gpg
 
-.PHONY: build-container
-build-container:
-	@docker build -t $(IMAGE_NAME):$(IMAGE_VERSION) .
+.PHONY: build-container/deb
+build-container/deb:
+	@docker build --no-cache -t $(IMAGE_NAME):$(IMAGE_VERSION) -f ./deb/Dockerfile .
 
+.PHONY: build-container/rpm
+build-container/rpm:
+	@docker build --no-cache -t $(IMAGE_NAME):$(IMAGE_VERSION) -f ./rpm/Dockerfile .
 
-.PHONY: build
-build: clean generate-keyring build-container
+.PHONY: build/deb
+build/deb: clean generate-keyring build-container/deb
+	@docker run -v $(CURDIR)/pkg:/fpm/pkg $(IMAGE_NAME):$(IMAGE_VERSION) --version $(PKG_VERSION) .
+
+.PHONY: build/rpm
+build/rpm: clean build-container/rpm
 	@docker run -v $(CURDIR)/pkg:/fpm/pkg $(IMAGE_NAME):$(IMAGE_VERSION) --version $(PKG_VERSION) .
 
 .PHONY: ci/deps
