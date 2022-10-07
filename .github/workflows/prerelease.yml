@@ -31,7 +31,10 @@ jobs:
         run: make ci/validate
 
       - name: Preparing linux packages
-        run: make build
+        run: make build/apt
+
+      - name: Preparing linux packages
+        run: make build/rpm
 
       - name: Sign package
         run: make ci/sign
@@ -43,7 +46,7 @@ jobs:
       - name: Generate checksum files
         uses: newrelic/infrastructure-agent/.github/actions/generate-checksums@master
         with:
-          files_regex: '.*\(deb\)'
+          files_regex: '.*\(deb\|rpm\)'
           files_path: 'pkg'
           run_sudo: true
 
