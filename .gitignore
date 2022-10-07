@@ -1,3 +1,4 @@
 *.deb
+*.rpm
 pkg/.gitkeep
 !.gitkeep
