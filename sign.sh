@@ -18,3 +18,10 @@ for deb_file in $(find -regex ".*\.\(deb\)");do
   echo "===> Signing $deb_file"
   debsigs --sign=origin --verify --check -v -k ${GPG_MAIL} $deb_file
 done
+
+for rpm_file in $(find -regex ".*\.\(rpm\)");do
+  echo "===> Signing $rpm_file"
+  rpm --addsign $rpm_file
+  echo "===> Sign verification $rpm_file"
+  rpm -v --checksig $rpm_file
+done

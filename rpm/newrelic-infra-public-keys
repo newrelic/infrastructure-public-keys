@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+KEYS_LOCATION=/opt/newrelic-infra-public-keys
+
+rpm --import "${KEYS_LOCATION}/keys/next/newrelic_rpm_key_next.gpg"
+
+exit 0
