@@ -61,10 +61,10 @@ jobs:
           echo "Encoding private key to base64..."
           ENCODED_KEY=$(cat gpg-private-key.asc | base64 -w 0)
           
-          echo "Uploading encoded private key to GitHub secret..."
-          gh secret set OHAI_GPG_PRIVATE_KEY_TEST --body "${ENCODED_KEY}" --repo ${{ github.repository }}
+          echo "Uploading encoded private key to GitHub organization secret..."
+          gh secret set OHAI_GPG_PRIVATE_SHA256 --body "${ENCODED_KEY}" --org newrelic --visibility all
           
-          echo "✓ Private key (base64 encoded) uploaded to GitHub secret: OHAI_GPG_PRIVATE_KEY_TEST"
+          echo "✓ Private key (base64 encoded) uploaded to GitHub organization secret: OHAI_GPG_PRIVATE_SHA256"
       
       - name: Export GPG key in binary format
         run: |
