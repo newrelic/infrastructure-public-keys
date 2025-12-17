@@ -45,7 +45,7 @@ jobs:
           echo "Public key preview:"
           head -n 5 gpg-public-key.asc
           echo ""
-          echo "Keys generated successfully!"
+          echo "Keys generated successfully!"      
       
       - name: Upload private key to GitHub Secrets
         env:
@@ -113,3 +113,4 @@ jobs:
           
           echo "✓ Public RPM key committed to gpg/keys/new/ folder"
           echo "✓ File available at: gpg/keys/new/newrelic_rpm_key_new.gpg"
+
