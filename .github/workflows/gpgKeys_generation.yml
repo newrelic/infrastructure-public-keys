@@ -86,13 +86,15 @@ jobs:
           echo "Creating directory structure if it doesn't exist..."
           mkdir -p gpg/keys/new
           
-          echo "Exporting RPM key..."
-          # Export for RPM (RedHat/CentOS/Fedora)
-          gpg --export "${KEY_ID}" > gpg/keys/new/newrelic_rpm_key_new.gpg
+          echo "Exporting RPM key in ASCII-armored format..."
+          # Export for RPM (RedHat/CentOS/Fedora) in ASCII-armored format
+          gpg --armor --export "${KEY_ID}" > gpg/keys/new/newrelic_rpm_key_new.gpg
           
           echo "Generated key in gpg/keys/new/:"
           ls -lh gpg/keys/new/
-          echo "✓ Public RPM key exported to gpg/keys/new/ folder"
+          echo "Public key preview:"
+          head -n 10 gpg/keys/new/newrelic_rpm_key_new.gpg
+          echo "✓ Public RPM key exported to gpg/keys/new/ folder in ASCII-armored format"
       
       - name: Commit public keys to repository
         env:
