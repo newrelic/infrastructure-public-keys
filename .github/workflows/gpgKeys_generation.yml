@@ -3,18 +3,15 @@ name: GPG Key Generation (Test)
 on:
   workflow_dispatch:
     inputs:
-      test_message:
-        description: 'Test message to display'
+      reason:
+        description: 'Reason for generating new GPG key'
         required: false
-        default: 'Hello from GPG workflow test!'
         type: string
-  push:
-    branches:
-      - gpgWorkflow
 
 jobs:
   generate-gpg-keys:
     runs-on: ubuntu-latest
+    environment: GpgKeysOHAI
     
     steps:
       - name: Checkout repository
@@ -42,9 +39,6 @@ jobs:
           echo "Verifying generated files..."
           ls -lh gpg-*.asc
           echo ""
-          echo "Public key preview:"
-          head -n 5 gpg-public-key.asc
-          echo ""
           echo "Keys generated successfully!"      
       
       - name: Upload private key to GitHub Secrets
@@ -61,10 +55,23 @@ jobs:
           echo "Encoding private key to base64..."
           ENCODED_KEY=$(cat gpg-private-key.asc | base64 -w 0)
           
-          echo "Uploading encoded private key to GitHub organization secret..."
-          gh secret set OHAI_GPG_PRIVATE_SHA256 --body "${ENCODED_KEY}" --org newrelic --visibility all
+          echo "Creating unique secret name with timestamp..."
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          SECRET_NAME_TIMESTAMPED="OHAI_GPG_PRIVATE_SHA256_${TIMESTAMP}"
+          SECRET_NAME_CURRENT="OHAI_GPG_PRIVATE_SHA256"
           
-          echo "✓ Private key (base64 encoded) uploaded to GitHub organization secret: OHAI_GPG_PRIVATE_SHA256"
+          echo "Uploading to current secret (will be overwritten each time)..."
+          gh secret set "${SECRET_NAME_CURRENT}" --body "${ENCODED_KEY}" --org newrelic --visibility selected --repos "infrastructure-agent,infrastructure-bundle,infrastructure-publish-action,newrelic-agent-control,infrastructure-public-keys,fluent-bit-package,newrelic-ebpf-agent,nr-control-e2e-testing,newrelic-prometheus-exporters-packages,coreint-automation,nrjmx,nri-discovery-kubernetes"
+          echo "✓ Current key uploaded to: ${SECRET_NAME_CURRENT}"
+          
+          echo "Uploading to timestamped secret (historical backup)..."
+          gh secret set "${SECRET_NAME_TIMESTAMPED}" --body "${ENCODED_KEY}" --org newrelic --visibility selected --repos "infrastructure-agent,infrastructure-bundle,infrastructure-publish-action,newrelic-agent-control,infrastructure-public-keys,fluent-bit-package,newrelic-ebpf-agent,nr-control-e2e-testing,newrelic-prometheus-exporters-packages,coreint-automation,nrjmx,nri-discovery-kubernetes"
+          echo "✓ Backup key uploaded to: ${SECRET_NAME_TIMESTAMPED}"
+          
+          echo ""
+          echo "Summary:"
+          echo "  - Current/Active: ${SECRET_NAME_CURRENT} (overwritten)"
+          echo "  - Historical Backup: ${SECRET_NAME_TIMESTAMPED} (new)"
       
       - name: Export GPG key in binary format
         run: |
@@ -85,16 +92,23 @@ jobs:
           
           echo "Creating directory structure if it doesn't exist..."
           mkdir -p gpg/keys/new
+          mkdir -p gpg/keys/current
           
-          echo "Exporting RPM key in ASCII-armored format..."
-          # Export for RPM (RedHat/CentOS/Fedora) in ASCII-armored format
-          gpg --armor --export "${KEY_ID}" > gpg/keys/new/newrelic_rpm_key_new.gpg
+          echo "Creating timestamp for backup..."
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
           
-          echo "Generated key in gpg/keys/new/:"
-          ls -lh gpg/keys/new/
-          echo "Public key preview:"
-          head -n 10 gpg/keys/new/newrelic_rpm_key_new.gpg
-          echo "✓ Public RPM key exported to gpg/keys/new/ folder in ASCII-armored format"
+          echo "Exporting current RPM key (will be overwritten each time)..."
+          gpg --armor --export "${KEY_ID}" > gpg/keys/current/newrelic_rpm_key_current.gpg
+          
+          echo "Exporting timestamped RPM key (historical backup)..."
+          gpg --armor --export "${KEY_ID}" > gpg/keys/new/newrelic_rpm_key_${TIMESTAMP}.gpg
+          
+          echo "Generated keys:"
+          echo "Current key (overwritten):"
+          ls -lh gpg/keys/current/newrelic_rpm_key_current.gpg
+          echo "Timestamped backup:"
+          ls -lh gpg/keys/new/newrelic_rpm_key_${TIMESTAMP}.gpg
+          echo "✓ Public RPM keys exported in ASCII-armored format"
       
       - name: Commit public keys to repository
         env:
@@ -104,15 +118,52 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          echo "Adding generated key..."
-          git add gpg/keys/new/newrelic_rpm_key_new.gpg
+          echo "Adding generated keys..."
+          git add gpg/keys/current/newrelic_rpm_key_current.gpg
+          git add gpg/keys/new/newrelic_rpm_key_*.gpg
           
           echo "Committing changes..."
-          git commit -m "Add generated GPG public key to gpg/keys/new folder" || echo "No changes to commit"
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          REASON="${{ github.event.inputs.reason }}"
+          if [ -n "$REASON" ]; then
+            git commit -m "Add generated GPG public keys: current (overwritten) and backup (${TIMESTAMP})" -m "Reason: ${REASON}" || echo "No changes to commit"
+          else
+            git commit -m "Add generated GPG public keys: current (overwritten) and backup (${TIMESTAMP})" || echo "No changes to commit"
+          fi
           
           echo "Pushing to repository..."
           git push
           
           echo "✓ Public RPM key committed to gpg/keys/new/ folder"
           echo "✓ File available at: gpg/keys/new/newrelic_rpm_key_new.gpg"
+      
+      - name: Cleanup sensitive files
+        if: always()
+        run: |
+          echo "Securely removing private key files..."
+          
+          # Use shred to overwrite the file multiple times before removal
+          if [ -f "gpg-private-key.asc" ]; then
+            echo "Shredding gpg-private-key.asc..."
+            shred -vfz -n 10 gpg-private-key.asc
+            rm -f gpg-private-key.asc
+            echo "✓ gpg-private-key.asc securely removed"
+          fi
+          
+          # Also clean up the GPG batch config if it exists
+          if [ -f "gpg-batch-config.txt" ]; then
+            echo "Shredding gpg-batch-config.txt..."
+            shred -vfz -n 10 gpg-batch-config.txt
+            rm -f gpg-batch-config.txt
+            echo "✓ gpg-batch-config.txt securely removed"
+          fi
+          
+          # Verify files are removed
+          echo "Verifying cleanup..."
+          if [ -f "gpg-private-key.asc" ] || [ -f "gpg-batch-config.txt" ]; then
+            echo "⚠ Warning: Some sensitive files still exist!"
+            exit 1
+          else
+            echo "✓ All sensitive files successfully removed"
+          fi
 
