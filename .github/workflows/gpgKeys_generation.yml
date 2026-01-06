@@ -61,11 +61,11 @@ jobs:
           SECRET_NAME_CURRENT="OHAI_GPG_PRIVATE_SHA256"
           
           echo "Uploading to current secret (will be overwritten each time)..."
-          gh secret set "${SECRET_NAME_CURRENT}" --body "${ENCODED_KEY}" --org newrelic --visibility selected --repos "infrastructure-agent,infrastructure-bundle,infrastructure-publish-action,newrelic-agent-control,infrastructure-public-keys,fluent-bit-package,newrelic-ebpf-agent,nr-control-e2e-testing,newrelic-prometheus-exporters-packages,coreint-automation,nrjmx,nri-discovery-kubernetes"
+          gh secret set "${SECRET_NAME_CURRENT}" --body "${ENCODED_KEY}" --org newrelic --visibility selected --repos "infrastructure-agent,infrastructure-bundle,infrastructure-publish-action,newrelic-agent-control,infrastructure-public-keys,fluent-bit-package,newrelic-prometheus-exporters-packages,coreint-automation,nrjmx,nri-discovery-kubernetes"
           echo "✓ Current key uploaded to: ${SECRET_NAME_CURRENT}"
           
           echo "Uploading to timestamped secret (historical backup)..."
-          gh secret set "${SECRET_NAME_TIMESTAMPED}" --body "${ENCODED_KEY}" --org newrelic --visibility selected --repos "infrastructure-agent,infrastructure-bundle,infrastructure-publish-action,newrelic-agent-control,infrastructure-public-keys,fluent-bit-package,newrelic-ebpf-agent,nr-control-e2e-testing,newrelic-prometheus-exporters-packages,coreint-automation,nrjmx,nri-discovery-kubernetes"
+          gh secret set "${SECRET_NAME_TIMESTAMPED}" --body "${ENCODED_KEY}" --org newrelic --visibility selected --repos "infrastructure-agent,infrastructure-bundle,infrastructure-publish-action,newrelic-agent-control,infrastructure-public-keys,fluent-bit-package,newrelic-prometheus-exporters-packages,coreint-automation,nrjmx,nri-discovery-kubernetes"
           echo "✓ Backup key uploaded to: ${SECRET_NAME_TIMESTAMPED}"
           
           echo ""
