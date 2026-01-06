@@ -55,9 +55,10 @@ jobs:
           echo "Encoding private key to base64..."
           ENCODED_KEY=$(cat gpg-private-key.asc | base64 -w 0)
           
-          echo "Creating unique secret name with timestamp..."
-          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-          SECRET_NAME_TIMESTAMPED="OHAI_GPG_PRIVATE_SHA256_${TIMESTAMP}"
+          # echo "Creating unique secret name with timestamp..."
+          # TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          # SECRET_NAME_TIMESTAMPED="OHAI_GPG_PRIVATE_SHA256_${TIMESTAMP}"
+          SECRET_NAME_TIMESTAMPED="OHAI_GPG_PRIVATE_SHA256_20260106_123827"
           SECRET_NAME_CURRENT="OHAI_GPG_PRIVATE_SHA256"
           
           echo "Uploading to current secret (will be overwritten each time)..."
