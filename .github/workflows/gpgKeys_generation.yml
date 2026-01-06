@@ -1,0 +1,169 @@
+name: GPG Key Generation
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for generating new GPG key'
+        required: false
+        type: string
+
+jobs:
+  generate-gpg-keys:
+    runs-on: ubuntu-latest
+    environment: GpgKeysOHAI
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup GPG
+        run: |
+          echo "GPG Version:"
+          gpg --version
+          echo "Creating GPG directory..."
+          mkdir -p ~/.gnupg
+          chmod 700 ~/.gnupg
+      
+      - name: Generate GPG Keys
+        env:
+          OHAI_GPG_PASSPHRASE: ${{ secrets.OHAI_GPG_PASSPHRASE }}
+          GPG_KEY_NAME: "New Relic Infrastructure Agent"
+          GPG_KEY_EMAIL: "infrastructure-eng@newrelic.com"
+        run: |
+          chmod +x .github/workflows/scripts/gpgKeys_generation.sh
+          .github/workflows/scripts/gpgKeys_generation.sh
+      
+      - name: Verify generated keys
+        run: |
+          echo "Verifying generated files..."
+          ls -lh gpg-*.asc
+          echo ""
+          echo "Keys generated successfully!"      
+      
+      - name: Upload private key to GitHub Secrets
+        env:
+          GH_TOKEN: ${{ secrets.OHAI_PAT }}
+        run: |
+          echo "Installing GitHub CLI..."
+          type -p gh &> /dev/null || (curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+          && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+          && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+          && sudo apt update \
+          && sudo apt install gh -y)
+          
+          echo "Encoding private key to base64..."
+          ENCODED_KEY=$(cat gpg-private-key.asc | base64 -w 0)
+          
+          echo "Creating unique secret name with timestamp..."
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          SECRET_NAME_TIMESTAMPED="OHAI_GPG_PRIVATE_SHA256_${TIMESTAMP}"
+          SECRET_NAME_CURRENT="OHAI_GPG_PRIVATE_SHA256"
+          
+          echo "Uploading to current secret (will be overwritten each time)..."
+          gh secret set "${SECRET_NAME_CURRENT}" --body "${ENCODED_KEY}" --org newrelic --visibility selected --repos "infrastructure-agent,infrastructure-bundle,infrastructure-publish-action,newrelic-agent-control,infrastructure-public-keys,fluent-bit-package,newrelic-ebpf-agent,nr-control-e2e-testing,newrelic-prometheus-exporters-packages,coreint-automation,nrjmx,nri-discovery-kubernetes"
+          echo "✓ Current key uploaded to: ${SECRET_NAME_CURRENT}"
+          
+          echo "Uploading to timestamped secret (historical backup)..."
+          gh secret set "${SECRET_NAME_TIMESTAMPED}" --body "${ENCODED_KEY}" --org newrelic --visibility selected --repos "infrastructure-agent,infrastructure-bundle,infrastructure-publish-action,newrelic-agent-control,infrastructure-public-keys,fluent-bit-package,newrelic-ebpf-agent,nr-control-e2e-testing,newrelic-prometheus-exporters-packages,coreint-automation,nrjmx,nri-discovery-kubernetes"
+          echo "✓ Backup key uploaded to: ${SECRET_NAME_TIMESTAMPED}"
+          
+          echo ""
+          echo "Summary:"
+          echo "  - Current/Active: ${SECRET_NAME_CURRENT} (overwritten)"
+          echo "  - Historical Backup: ${SECRET_NAME_TIMESTAMPED} (new)"
+      
+      - name: Export GPG key in binary format
+        run: |
+          echo "Getting Key ID..."
+          KEY_ID=$(gpg --list-keys --with-colons "infrastructure-eng@newrelic.com" | awk -F: '/^pub:/ {print $5}' | head -n 1)
+          echo "Key ID: ${KEY_ID}"
+          
+          echo "Exporting public key in .gpg binary format..."
+          gpg --export "${KEY_ID}" > public-key.gpg
+          ls -lh public-key.gpg
+          echo "✓ Binary GPG key exported"
+      
+      - name: Copy public keys to gpg/keys folder
+        run: |
+          echo "Getting Key ID..."
+          KEY_ID=$(gpg --list-keys --with-colons "infrastructure-eng@newrelic.com" | awk -F: '/^pub:/ {print $5}' | head -n 1)
+          echo "Key ID: ${KEY_ID}"
+          
+          echo "Creating directory structure if it doesn't exist..."
+          mkdir -p gpg/keys/new
+          mkdir -p gpg/keys/current
+          
+          echo "Creating timestamp for backup..."
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          
+          echo "Exporting current RPM key (will be overwritten each time)..."
+          gpg --armor --export "${KEY_ID}" > gpg/keys/current/newrelic_rpm_key_current.gpg
+          
+          echo "Exporting timestamped RPM key (historical backup)..."
+          gpg --armor --export "${KEY_ID}" > gpg/keys/new/newrelic_rpm_key_${TIMESTAMP}.gpg
+          
+          echo "Generated keys:"
+          echo "Current key (overwritten):"
+          ls -lh gpg/keys/current/newrelic_rpm_key_current.gpg
+          echo "Timestamped backup:"
+          ls -lh gpg/keys/new/newrelic_rpm_key_${TIMESTAMP}.gpg
+          echo "✓ Public RPM keys exported in ASCII-armored format"
+      
+      - name: Commit public keys to repository
+        env:
+          GH_TOKEN: ${{ secrets.OHAI_PAT }}
+        run: |
+          echo "Configuring git..."
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          echo "Adding generated keys..."
+          git add gpg/keys/current/newrelic_rpm_key_current.gpg
+          git add gpg/keys/new/newrelic_rpm_key_*.gpg
+          
+          echo "Committing changes..."
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          REASON="${{ github.event.inputs.reason }}"
+          if [ -n "$REASON" ]; then
+            git commit -m "Add generated GPG public keys: current (overwritten) and backup (${TIMESTAMP})" -m "Reason: ${REASON}" || echo "No changes to commit"
+          else
+            git commit -m "Add generated GPG public keys: current (overwritten) and backup (${TIMESTAMP})" || echo "No changes to commit"
+          fi
+          
+          echo "Pushing to repository..."
+          git push
+          
+          echo "✓ Public RPM key committed to gpg/keys/new/ folder"
+          echo "✓ File available at: gpg/keys/new/newrelic_rpm_key_new.gpg"
+      
+      - name: Cleanup sensitive files
+        if: always()
+        run: |
+          echo "Securely removing private key files..."
+          
+          # Use shred to overwrite the file multiple times before removal
+          if [ -f "gpg-private-key.asc" ]; then
+            echo "Shredding gpg-private-key.asc..."
+            shred -vfz -n 10 gpg-private-key.asc
+            rm -f gpg-private-key.asc
+            echo "✓ gpg-private-key.asc securely removed"
+          fi
+          
+          # Also clean up the GPG batch config if it exists
+          if [ -f "gpg-batch-config.txt" ]; then
+            echo "Shredding gpg-batch-config.txt..."
+            shred -vfz -n 10 gpg-batch-config.txt
+            rm -f gpg-batch-config.txt
+            echo "✓ gpg-batch-config.txt securely removed"
+          fi
+          
+          # Verify files are removed
+          echo "Verifying cleanup..."
+          if [ -f "gpg-private-key.asc" ] || [ -f "gpg-batch-config.txt" ]; then
+            echo "⚠ Warning: Some sensitive files still exist!"
+            exit 1
+          else
+            echo "✓ All sensitive files successfully removed"
+          fi
+
