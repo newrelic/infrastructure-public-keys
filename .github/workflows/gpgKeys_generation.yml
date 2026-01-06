@@ -1,4 +1,4 @@
-name: GPG Key Generation (Test)
+name: GPG Key Generation
 
 on:
   workflow_dispatch:
