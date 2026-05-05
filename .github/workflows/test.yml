@@ -3,6 +3,10 @@ name: Test format
 on:
   push:
 
+
+permissions:
+  contents: read
+
 jobs:
   validate:
     name: Validate format
