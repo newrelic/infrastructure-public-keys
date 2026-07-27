@@ -8,6 +8,10 @@ on:
         required: false
         type: string
 
+
+permissions:
+  contents: write
+
 jobs:
   generate-gpg-keys:
     runs-on: ubuntu-latest
