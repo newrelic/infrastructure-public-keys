@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+# todo - make this more robust
+rpm -e gpg-pubkey-8483c65d-5ccc5b19 # NR rpm signing key
+
+exit 0
